@@ -1,0 +1,154 @@
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Loi des Grands Nombres avec sliders</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      gap: 20px;
+      padding: 20px;
+    }
+    canvas {
+      border: 1px solid #ccc;
+    }
+    #resultats {
+      width: 1000px;
+      height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      font-size: 14px;
+      background: #f9f9f9;
+    }
+    .slider-container {
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Loi des Grands Nombres</h1>
+
+  <label for="nbLancers">Nombre de lancers :</label>
+  <input type="number" id="nbLancers" value="500" min="10" max="100000">
+
+  <div class="slider-container">
+    <label for="paramP">Paramètre p (proba de pile) : <span id="valP">0.5</span></label>
+    <input type="range" id="paramP" min="0" max="1" step="0.01" value="0.5"
+           oninput="document.getElementById('valP').textContent = this.value">
+  </div>
+
+  <div class="slider-container">
+    <label for="vitesse">Vitesse (délai entre lancers en ms) : <span id="valV">50</span></label>
+    <input type="range" id="vitesse" min="1" max="500" step="1" value="50"
+           oninput="document.getElementById('valV').textContent = this.value">
+  </div>
+
+  <button id="btnSimuler" onclick="lancerSimulation()">Lancer</button>
+
+  <br><br>
+
+  <div style="display: flex; align-items: flex-start;">
+    <canvas id="canvas" width="800" height="400" style="border: 1px solid #ccc;"></canvas>
+
+    <div id="resultats" style="
+      margin-left: 20px;
+      max-width: 300px;
+      font-family: monospace;
+      line-height: 1.4;
+      word-wrap: break-word;
+      white-space: normal;
+      color: black;
+    "></div>
+  </div>
+
+  <script>
+    let nbPile = 0, i = 0, nbLancers = 1000;
+    let p = 0.5;
+    let delay = 50;
+
+    function lancerSimulation() {
+      document.getElementById('btnSimuler').disabled = true;
+      document.getElementById('resultats').innerHTML = "";
+
+      nbLancers = parseInt(document.getElementById('nbLancers').value);
+      p = parseFloat(document.getElementById('paramP').value);
+      delay = parseInt(document.getElementById('vitesse').value);
+      nbPile = 0;
+      i = 0;
+
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // ligne y = p
+      ctx.beginPath();
+      const yRef = canvas.height * (1 - p);
+      ctx.moveTo(0, yRef);
+      ctx.lineTo(canvas.width, yRef);
+      ctx.strokeStyle = '#666';
+      ctx.setLineDash([5, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      simulerPointParPoint(ctx, canvas);
+    }
+
+    function simulerPointParPoint(ctx, canvas) {
+      if (i >= nbLancers) {
+        document.getElementById('btnSimuler').disabled = false;
+        return;
+      }
+
+      p = parseFloat(document.getElementById('paramP').value);
+      delay = parseInt(document.getElementById('vitesse').value);
+
+      const width = canvas.width;
+      const height = canvas.height;
+
+      const tirage = Math.random() < p ? "pile" : "face";
+      if (tirage === "pile") nbPile++;
+
+      const freq = nbPile / (i + 1);
+      const se = Math.sqrt(p * (1 - p) / (i + 1));
+      const icLow = p - 1.96 * se;
+      const icHigh = p + 1.96 * se;
+
+      const x = (i / nbLancers) * width;
+      const yFreq = height * (1 - freq);
+      const yLow = height * (1 - icLow);
+      const yHigh = height * (1 - icHigh);
+
+      // Point fréquence
+      ctx.beginPath();
+      ctx.arc(x, yFreq, 2, 0, 2 * Math.PI);
+      ctx.fillStyle = 'blue';
+      ctx.fill();
+
+      // Points IC
+      ctx.beginPath();
+      ctx.arc(x, yLow, 2, 0, 2 * Math.PI);
+      ctx.arc(x, yHigh, 2, 0, 2 * Math.PI);
+      ctx.fillStyle = 'red';
+      ctx.fill();
+
+      // Affichage P ou F
+      const span = document.createElement('span');
+      span.textContent = tirage === 'pile' ? 'P' : 'F';
+      span.style.marginLeft = '3px';
+      span.style.color = tirage === 'pile' ? 'blue' : 'black';
+      document.getElementById('resultats').appendChild(span);
+
+      i++;
+      if (i < nbLancers) {
+        setTimeout(() => simulerPointParPoint(ctx, canvas), delay);
+      } else {
+        document.getElementById('btnSimuler').disabled = false;
+      }
+    }
+  </script>
+</body>
